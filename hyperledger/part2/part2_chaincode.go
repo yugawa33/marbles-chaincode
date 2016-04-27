@@ -285,9 +285,12 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 
 	//check if marble already exists
 	marbleAsBytes, err := stub.GetState(name)
-	if err == nil {
-		res := Marble{}
-		json.Unmarshal(marbleAsBytes, &res)
+	if err != nil {
+		return nil, errors.New("Failed to get marble name")
+	}
+	res := Marble{}
+	json.Unmarshal(marbleAsBytes, &res)
+	if res.Name == name{
 		fmt.Println("This marble arleady exists: " + name)
 		fmt.Println("%v", res);
 		return nil, errors.New("This marble arleady exists")				//all stop a marble by this name exists
