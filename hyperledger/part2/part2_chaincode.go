@@ -261,6 +261,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 		return nil, errors.New("Incorrect number of arguments. Expecting 4")
 	}
 
+	//input sanitation
 	fmt.Println("- start init marble")
 	if len(args[0]) <= 0 {
 		return nil, errors.New("1st argument must be a non-empty string")
@@ -274,17 +275,24 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	if len(args[3]) <= 0 {
 		return nil, errors.New("4th argument must be a non-empty string")
 	}
-	
+	name := args[0]
+	color := strings.ToLower(args[1])
+	user := strings.ToLower(args[3])
 	size, err := strconv.Atoi(args[2])
 	if err != nil {
 		return nil, errors.New("3rd argument must be a numeric string")
 	}
-	
-	color := strings.ToLower(args[1])
-	user := strings.ToLower(args[3])
 
-	str := `{"name": "` + args[0] + `", "color": "` + color + `", "size": ` + strconv.Itoa(size) + `, "user": "` + user + `"}`
-	err = stub.PutState(args[0], []byte(str))								//store marble with id as key
+	//check if marble already exists
+	_, err = stub.GetState(name)
+	if err == nil {
+		fmt.Println("This marble arleady exists: " + name)
+		return nil, errors.New("This marble arleady exists")				//all stop a marble by this name exists
+	}
+	
+	//build the marble json string manually
+	str := `{"name": "` + name + `", "color": "` + color + `", "size": ` + strconv.Itoa(size) + `, "user": "` + user + `"}`
+	err = stub.PutState(name, []byte(str))									//store marble with id as key
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +306,7 @@ func (t *SimpleChaincode) init_marble(stub *shim.ChaincodeStub, args []string) (
 	json.Unmarshal(marblesAsBytes, &marbleIndex)							//un stringify it aka JSON.parse()
 	
 	//append
-	marbleIndex = append(marbleIndex, args[0])								//add marble name to index list
+	marbleIndex = append(marbleIndex, name)									//add marble name to index list
 	fmt.Println("! marble index: ", marbleIndex)
 	jsonAsBytes, _ := json.Marshal(marbleIndex)
 	err = stub.PutState(marbleIndexStr, jsonAsBytes)						//store name of marble
